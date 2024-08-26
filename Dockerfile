@@ -11,23 +11,23 @@ RUN apk update && \
     make \
     libc6-compat \
     && rm -rf /var/cache/apk/*
-RUN yarn install --production --pure-lockfile && \
-    yarn add sharp --ignore-engines && \
-    yarn cache clean
+RUN npm install --production --pure-lockfile && \
+    npm add sharp --ignore-engines && \
+    npm cache clean
 
 FROM base as build
 WORKDIR /usr/src/wpp-server
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 COPY package.json  ./
-RUN yarn install --production=false --pure-lockfile
-RUN yarn cache clean
+RUN npm install --production=false --pure-lockfile
+RUN npm cache clean
 COPY . .
-RUN yarn build
+RUN npm run build
 
 FROM base
 WORKDIR /usr/src/wpp-server/
 RUN apk add --no-cache chromium
-RUN yarn cache clean
+RUN npm cache clean
 COPY . .
 COPY --from=build /usr/src/wpp-server/ /usr/src/wpp-server/
 EXPOSE 3000
