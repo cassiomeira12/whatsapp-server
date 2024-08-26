@@ -1,22 +1,34 @@
-FROM node:lts-alpine3.18 as builder
+FROM node:lts-alpine3.18 as base
+WORKDIR /usr/src/wpp-server
+ENV NODE_ENV=production PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+COPY package.json ./
+RUN apk update && \
+    apk add --no-cache \
+    vips-dev \
+    fftw-dev \
+    gcc \
+    g++ \
+    make \
+    libc6-compat \
+    && rm -rf /var/cache/apk/*
+RUN yarn install --production --pure-lockfile && \
+    yarn add sharp --ignore-engines && \
+    yarn cache clean
 
-RUN apk add wget && \
-    apk add --no-cache git
-
-WORKDIR /home/node
-RUN git clone https://github.com/wppconnect-team/wppconnect-server.git /home/node/app 
-
-WORKDIR /home/node/app
-
-COPY ./config.ts /home/node/app/src
-
-RUN npm install
-RUN npm run build
-
-FROM node:lts-alpine3.18
+FROM base as build
+WORKDIR /usr/src/wpp-server
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-WORKDIR /home/node/app
-RUN apk add chromium
-COPY --from=builder /home/node/app/ .
-EXPOSE 3000
+COPY package.json  ./
+RUN yarn install --production=false --pure-lockfile
+RUN yarn cache clean
+COPY . .
+RUN yarn build
+
+FROM base
+WORKDIR /usr/src/wpp-server/
+RUN apk add --no-cache chromium
+RUN yarn cache clean
+COPY . .
+COPY --from=build /usr/src/wpp-server/ /usr/src/wpp-server/
+EXPOSE 21465
 ENTRYPOINT ["node", "dist/server.js"]
