@@ -11,6 +11,7 @@ WORKDIR /home/node/app
 COPY ./config.ts /home/node/app/src
 
 RUN npm install
+RUN npm run build
 
 FROM node:lts-alpine3.18
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
@@ -18,3 +19,4 @@ WORKDIR /home/node/app
 RUN apk add chromium
 COPY --from=builder /home/node/app/ .
 EXPOSE 3000
+ENTRYPOINT ["node", "dist/server.js"]
